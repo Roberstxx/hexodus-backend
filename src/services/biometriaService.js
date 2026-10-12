@@ -59,7 +59,7 @@ export async function consumeEnrollmentProof(tx, fingerprint, now = new Date()) 
   if (used) fail(409, "ENROLLMENT_PROOF_REUSED", "Esta prueba de huella ya fue utilizada. Captura nuevamente.");
   await tx.auditoriaLog.create({ data: {
     id, timestamp: now, modulo: INTERNAL_MODULE, accion: "enrolamiento",
-    descripcion: "ComprobaciÃ³n biomÃ©trica consumida al guardar al socio.",
+    descripcion: "Comprobación biométrica consumida al guardar al socio.",
     detalles: { version: 1, kind: "enrollment", proofId: proof.proofId,
       kioskId: proof.kioskId, codigoSocio: proof.codigoSocio,
       revision: proof.revision, consumedAtUtc: now.toISOString() },
@@ -72,7 +72,7 @@ export function createBiometricService({ db, env = process.env, clock = () => ne
       onlyFields(req.body, ["kioskId", "scope", "codigoSocio"]);
       const id = kioskId(req.body.kioskId);
       deviceKey(id, env);
-      if (!["kiosk", "enrollment"].includes(req.body.scope)) fail(400, "INVALID_SCOPE", "Ãmbito del motor invÃ¡lido.");
+      if (!["kiosk", "enrollment"].includes(req.body.scope)) fail(400, "INVALID_SCOPE", "Ámbito del motor inválido.");
       const target = req.body.codigoSocio === undefined ? null : socioCode(req.body.codigoSocio, true);
       if (req.body.scope === "kiosk" && target !== null) fail(400, "INVALID_SCOPE", "El kiosco no requiere un socio objetivo.");
       const permissions = req.body.scope === "kiosk"
@@ -100,7 +100,7 @@ export function createBiometricService({ db, env = process.env, clock = () => ne
         const rows = await readFingerprints(tx);
         // Database time, sampled under the same lock, orders snapshots from every backend instance.
         const [stamp] = await tx.$queryRaw`SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "issuedAtUtc"`;
-        if (typeof stamp?.issuedAtUtc !== "string") fail(503, "SNAPSHOT_UNAVAILABLE", "No se pudo fechar la sincronizaciÃ³n biomÃ©trica.");
+        if (typeof stamp?.issuedAtUtc !== "string") fail(503, "SNAPSHOT_UNAVAILABLE", "No se pudo fechar la sincronización biométrica.");
         return { rows, revision: fingerprintRevision(rows), issuedAtUtc: stamp.issuedAtUtc };
       }, { maxWait: 5000, timeout: 20000 });
       const snapshot = signToken({ v: 1, purpose: "cache", kioskId: id, revision,
@@ -108,7 +108,7 @@ export function createBiometricService({ db, env = process.env, clock = () => ne
         baseDeDatos: rows.map((s) => ({ codigoSocio: s.codigoSocio, huellaTemplate: s.huellaTemplate, habilitado: s.status !== "bloqueado" })),
       }, env);
       const data = rows.filter((s) => s.status !== "bloqueado").map(({ status, ...s }) => s);
-      return { success: true, message: "SincronizaciÃ³n de huellas exitosa", data, total: data.length, snapshot, revision };
+      return { success: true, message: "Sincronización de huellas exitosa", data, total: data.length, snapshot, revision };
     },
 
     async recognize(req) {
@@ -119,22 +119,22 @@ export function createBiometricService({ db, env = process.env, clock = () => ne
       const returnExisting = async (row) => {
         const record = row.detalles;
         if (row.modulo !== INTERNAL_MODULE || !record || typeof record !== "object" || Array.isArray(record) || record.version !== 1 || record.kind !== "recognition")
-          fail(503, "EVENT_RECEIPT_INVALID", "El comprobante del evento no estÃ¡ disponible.");
+          fail(503, "EVENT_RECEIPT_INVALID", "El comprobante del evento no está disponible.");
         if (record.payloadHash !== payloadHash || record.kioskId !== event.kioskId || record.eventId !== event.eventId || record.instanceId !== event.instanceId)
           fail(409, "EVENT_CONFLICT", "El identificador del evento ya tiene otro contenido.");
         if (!record.response || typeof record.response !== "object" || Array.isArray(record.response) || record.response.success !== true || typeof record.response.receipt !== "string" || !["permitido", "denegado"].includes(record.response.data?.decision))
           fail(503, "EVENT_PENDING", "El evento sigue pendiente de procesamiento.");
         if (record.accesoId !== null) {
-          if (!Number.isSafeInteger(record.accesoId)) fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante requiere revisiÃ³n administrativa. No se volverÃ¡ a registrar la asistencia.");
+          if (!Number.isSafeInteger(record.accesoId)) fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante requiere revisión administrativa. No se volverá a registrar la asistencia.");
           const attendance = await db.acceso.findUnique({ where: { id: record.accesoId }, select: {
             socioId: true, fechaHora: true, dispositivoId: true, metodo: true,
           } });
           if (!attendance || attendance.socioId !== record.response.data.socio?.id ||
               attendance.fechaHora.getTime() !== Date.parse(event.capturedAtUtc) ||
               attendance.dispositivoId !== event.kioskId || attendance.metodo !== "huella")
-            fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante y la asistencia no coinciden. Requiere revisiÃ³n administrativa; no se crearÃ¡ otra asistencia.");
+            fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante y la asistencia no coinciden. Requiere revisión administrativa; no se creará otra asistencia.");
         } else if (record.response.data.asistencia !== null) {
-          fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante de asistencia requiere revisiÃ³n administrativa.");
+          fail(503, "BIO_RECEIPT_INCONSISTENT", "El comprobante de asistencia requiere revisión administrativa.");
         }
         return record.response;
       };
@@ -150,7 +150,7 @@ export function createBiometricService({ db, env = process.env, clock = () => ne
           // Do not use the best-effort audit helper here: failures must roll back the transaction.
           await tx.auditoriaLog.create({ data: {
             id, timestamp: now, usuarioId: req.user.id, modulo: INTERNAL_MODULE, accion: "evento",
-            descripcion: "Comprobante interno de asistencia biomÃ©trica.", detalles: record,
+            descripcion: "Comprobante interno de asistencia biométrica.", detalles: record,
           } });
           const socio = await leerSocioParaAsistencia(tx, event.codigoSocio);
           const membership = socio?.membresias?.[0];

@@ -6,7 +6,7 @@ const url = process.env.BIOMETRIC_TEST_DATABASE_URL;
 
 // Exercise the real shared controllers, not copies of their implementations.
 // Never import/connect their singleton client until both explicit URLs are checked.
-test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url }, async t => {
+test('regresión: socios y auditoría sin configurar el motor', { skip: !url }, async t => {
   const target = new URL(url);
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(target.hostname) && target.pathname.endsWith('_test'),
     'Only an explicitly named local test database is allowed');
@@ -51,7 +51,7 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
     plan = await db.membresiaPlan.create({ data: { uuidPlan: randomUUID(), nombre: roleId,
       precioBase: 123, duracionDias: 30 } });
 
-    await t.test('alta sin biometrÃ­a conserva contrato y membresÃ­a sin exigir permisos de huella', async () => {
+    await t.test('alta sin biometría conserva contrato y membresía sin exigir permisos de huella', async () => {
       const body = await call(crearSocio, request({
         personal: { nombre_completo: `Scope plain ${suffix}`, genero: 'M' },
         detalles_contrato: { contrato_firmado: true, inicio_contrato: '2026-10-01', fin_contrato: '2026-11-01' },
@@ -86,7 +86,7 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       assert.equal(row.huellaUpdatedAt, null);
     });
 
-    await t.test('ediciÃ³n personal sin huella conserva la plantilla existente y la membresÃ­a', async () => {
+    await t.test('edición personal sin huella conserva la plantilla existente y la membresía', async () => {
       const storedTemplate = Buffer.from('<Fmd>synthetic-existing-template</Fmd>').toString('base64');
       const storedAt = new Date('2026-10-01T12:01:00.000Z');
       await db.socio.update({ where: { id: plainId }, data: { huellaTemplate: storedTemplate, huellaUpdatedAt: storedAt } });
@@ -100,7 +100,7 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       assert.deepEqual(await db.membresiaSocio.findMany({ where: { socioId: plainId } }), before);
     });
 
-    await t.test('ediciÃ³n exclusivamente facial no modifica huella ni requiere el motor', async () => {
+    await t.test('edición exclusivamente facial no modifica huella ni requiere el motor', async () => {
       const before = await db.socio.findUniqueOrThrow({ where: { id: plainId } });
       await call(actualizarSocio, request({ biometria: { face_encoding: [0.9, 0.8, 0.7], foto_perfil_url: 'https://example.invalid/edited.png' } }, plainId), 200);
       const after = await db.socio.findUniqueOrThrow({ where: { id: plainId } });
@@ -112,12 +112,12 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       assert.equal(await db.auditoriaLog.count({ where: { usuarioId: user.id, modulo: 'biometria_interna' } }), 0);
     });
 
-    await t.test('la validaciÃ³n de datos personales mantiene su respuesta original', async () => {
+    await t.test('la validación de datos personales mantiene su respuesta original', async () => {
       const body = await call(crearSocio, request({ personal: { nombre_completo: '' } }), 400);
-      assert.deepEqual(body, { error: 'El Nombre Completo y GÃ©nero son obligatorios.' });
+      assert.deepEqual(body, { error: 'El Nombre Completo y Género son obligatorios.' });
     });
 
-    await t.test('un conflicto de transacciÃ³n sin huella conserva el error original de alta', async () => {
+    await t.test('un conflicto de transacción sin huella conserva el error original de alta', async () => {
       const transaction = db.$transaction;
       const logs = t.mock.method(console, 'error', () => {});
       try {
@@ -130,7 +130,7 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       }
     });
 
-    await t.test('un conflicto de transacciÃ³n sin huella conserva el error original de ediciÃ³n', async () => {
+    await t.test('un conflicto de transacción sin huella conserva el error original de edición', async () => {
       const transaction = db.$transaction;
       const logs = t.mock.method(console, 'error', () => {});
       try {
@@ -149,8 +149,8 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       assert.equal(await db.corteCaja.count({ where: { status: 'abierto' } }), 0, 'test database must not contain another open shift');
       paymentShift = await db.corteCaja.create({ data: { usuarioId: user.id, inicio: new Date(), fin: new Date(), status: 'abierto' } });
       for (const name of ['cash', 'card']) paymentMethods.push(await db.metodoPago.create({ data: { nombre: `${suffix}-${name}`, createdBy: user.id } }));
-      if (!await db.concepto.findUnique({ where: { nombre: 'InscripciÃ³n / MembresÃ­a' } })) {
-        ownedConcept = await db.concepto.create({ data: { nombre: 'InscripciÃ³n / MembresÃ­a', tipo: 'ingreso' } });
+      if (!await db.concepto.findUnique({ where: { nombre: 'Inscripción / Membresía' } })) {
+        ownedConcept = await db.concepto.create({ data: { nombre: 'Inscripción / Membresía', tipo: 'ingreso' } });
       }
       for (const split of [false, true]) {
         const payments = split ? [{ metodo_pago_id: paymentMethods[0].id, monto: 50 }, { metodo_pago_id: paymentMethods[1].id, monto: 73 }] : null;
@@ -180,7 +180,7 @@ test('regresiÃ³n: socios y auditorÃ­a sin configurar el motor', { skip: !url
       assert.equal(await db.pagoMembresia.count({ where: { recibidoPor: user.id } }), 3);
     });
 
-    await t.test('auditorÃ­a normal continÃºa visible y sus totales excluyen comprobantes tÃ©cnicos', async () => {
+    await t.test('auditoría normal continúa visible y sus totales excluyen comprobantes técnicos', async () => {
       const ordinaryId = randomUUID();
       await db.auditoriaLog.createMany({ data: [
         { id: ordinaryId, usuarioId: user.id, modulo: 'socios', accion: 'editar', descripcion: 'Synthetic human audit' },

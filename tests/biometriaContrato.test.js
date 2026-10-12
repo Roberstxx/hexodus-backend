@@ -12,7 +12,7 @@ const secret = Buffer.alloc(32, 17);
 const env = { BIOMETRIC_DEVICE_KEYS: JSON.stringify({ "TEST-KIOSK": secret.toString("base64") }), BIOMETRIC_ALLOWED_ORIGINS: '["https://gym.example"]' };
 const now = new Date("2026-10-10T12:00:00.000Z");
 const recognition = (overrides = {}) => ({ v: 1, purpose: "recognition", kioskId: "TEST-KIOSK", eventId: randomUUID(), instanceId: randomUUID(), codigoSocio: "SOC-TEST", tipo: "IN", capturedAtUtc: now.toISOString(), ...overrides });
-const xml = '<Fmd><Bytes>Ã¡Ã©</Bytes></Fmd>';
+const xml = '<Fmd><Bytes>áé</Bytes></Fmd>';
 const template = Buffer.from(xml, "utf8").toString("base64");
 const revision = sha256("synthetic-fingerprint-snapshot");
 const enrollment = (overrides = {}) => ({ v: 1, purpose: "enrollment", kioskId: "TEST-KIOSK", proofId: randomUUID(), revision, codigoSocio: null, templateSha256: sha256(Buffer.from(xml, "utf8")), issuedAtUtc: now.toISOString(), expiresAtUtc: new Date(+now + 300_000).toISOString(), ...overrides });
@@ -25,7 +25,7 @@ test("firma el segmento Base64URL exacto y valida con HMAC independiente", () =>
   assert.deepEqual(verifyToken(token, "recognition", { env }).payload, payload);
 });
 
-test("rechaza alteraciÃ³n, propÃ³sito diferente, clave revocada y base64 no canÃ³nico", () => {
+test("rechaza alteración, propósito diferente, clave revocada y base64 no canónico", () => {
   const token = signToken(recognition(), env);
   const [segment, signature] = token.split(".");
   assert.throws(() => verifyToken(`${segment}.${signature.slice(0, -2)}AA`, "recognition", { env }), { code: "INVALID_SIGNATURE" });
@@ -34,7 +34,7 @@ test("rechaza alteraciÃ³n, propÃ³sito diferente, clave revocada y base64 no 
   assert.throws(() => verifyToken(`${segment}=.${signature}`, "recognition", { env }), { code: "INVALID_PROOF" });
 });
 
-test("reconocimiento recuperable acepta captura antigua sin inventar expiraciÃ³n o confianza", () => {
+test("reconocimiento recuperable acepta captura antigua sin inventar expiración o confianza", () => {
   const token = signToken(recognition({ capturedAtUtc: "2026-01-01T01:02:03.1234567Z" }), env);
   assert.equal(validateRecognition(token, { env, now }).payload.capturedAtUtc, "2026-01-01T01:02:03.1234567Z");
   assert.throws(() => validateRecognition(signToken(recognition({ confidence: 100 }), env), { env, now }), { code: "INVALID_INPUT" });
@@ -42,7 +42,7 @@ test("reconocimiento recuperable acepta captura antigua sin inventar expiraciÃ�
   assert.throws(() => validateRecognition(signToken(recognition({ tipo: "DENEGADO" }), env), { env, now }), { code: "INVALID_TYPE" });
 });
 
-test("prueba de enrollment liga socio, revisiÃ³n, XML UTF8 y caducidad", () => {
+test("prueba de enrollment liga socio, revisión, XML UTF8 y caducidad", () => {
   const proof = signToken(enrollment(), env);
   assert.equal(validateEnrollmentProof(proof, template, null, { env, now }).revision, revision);
   assert.throws(() => validateEnrollmentProof(proof, template, "SOC-OTHER", { env, now }), { code: "PROOF_MISMATCH" });
@@ -54,14 +54,14 @@ test("prueba de enrollment liga socio, revisiÃ³n, XML UTF8 y caducidad", () =>
   }
 });
 
-test("la revisiÃ³n de contenido es estable y detecta cambios biomÃ©tricos sin contador en base de datos", () => {
+test("la revisión de contenido es estable y detecta cambios biométricos sin contador en base de datos", () => {
   const a = { id: 1, codigoSocio: "SOC-A", huellaTemplate: template, status: "activo" };
   const b = { id: 2, codigoSocio: "SOC-B", huellaTemplate: Buffer.from("<Fmd>other</Fmd>").toString("base64"), status: "bloqueado" };
   const initial = fingerprintRevision([a, b]);
   assert.match(initial, /^[a-f0-9]{64}$/);
-  assert.equal(fingerprintRevision([b, a]), initial, "el orden de consulta no cambia la revisiÃ³n");
+  assert.equal(fingerprintRevision([b, a]), initial, "el orden de consulta no cambia la revisión");
   assert.equal(fingerprintRevision([{ ...a, nombreCompleto: "Otro nombre", huellaUpdatedAt: new Date(), id: 99 }, b]), initial);
-  assert.equal(fingerprintRevision([{ ...a, status: "inactivo" }, b]), initial, "solo bloqueo afecta la habilitaciÃ³n biomÃ©trica");
+  assert.equal(fingerprintRevision([{ ...a, status: "inactivo" }, b]), initial, "solo bloqueo afecta la habilitación biométrica");
   assert.notEqual(fingerprintRevision([{ ...a, codigoSocio: "SOC-C" }, b]), initial);
   assert.notEqual(fingerprintRevision([{ ...a, huellaTemplate: b.huellaTemplate }, b]), initial);
   assert.notEqual(fingerprintRevision([{ ...a, status: "bloqueado" }, b]), initial);
@@ -78,14 +78,14 @@ test("plantillas limitadas y sin declaraciones XML peligrosas", () => {
   assert.throws(() => checkLifetime(enrollment({ expiresAtUtc: new Date(+now + 3600_000).toISOString() }), 300_000, now), { code: "PROOF_EXPIRED" });
 });
 
-test("legacy exige un identificador inequÃ­voco y tipos estrictos", () => {
+test("legacy exige un identificador inequívoco y tipos estrictos", () => {
   assert.deepEqual(validateLegacyAttendance({ socioId: "12", kioskId: "TEST-KIOSK" }), { id: 12 });
   for (const body of [{ socioId: "12abc" }, { socioId: 1, codigoSocio: "SOC-TEST" }, {}, { codigoSocio: {} }, { socioId: 1, tipo: "DENEGADO" }, { socioId: 1, confidence: "100" }]) {
     assert.throws(() => validateLegacyAttendance({ kioskId: "TEST-KIOSK", ...body }));
   }
 });
 
-test("orÃ­genes exactos y capability limitada de enrollment", async () => {
+test("orígenes exactos y capability limitada de enrollment", async () => {
   assert.equal(allowedOrigin("https://gym.example", env), "https://gym.example");
   for (const origin of [undefined, "null", "https://evil.gym.example", "https://gym.example.evil", "http://gym.example"]) assert.throws(() => allowedOrigin(origin, env), { code: "ORIGIN_UNAUTHORIZED" });
   const checks = [];

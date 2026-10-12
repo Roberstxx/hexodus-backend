@@ -9,7 +9,7 @@ import { leerSocioParaAsistencia } from '../src/services/biometriaLecturas.js';
 import { evaluarAccesoSocio } from '../src/utils/membresiaVigencia.js';
 
 const url = process.env.BIOMETRIC_TEST_DATABASE_URL;
-test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y recuperaciÃ³n', { skip: !url }, async t => {
+test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisión y recuperación', { skip: !url }, async t => {
   const target = new URL(url);
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(target.hostname) && target.pathname.endsWith('_test'), 'Only an explicitly named local test database is allowed');
   const db = new PrismaClient({ datasources: { db: { url } } });
@@ -34,7 +34,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
     members.push(member.id); return member;
   };
   try {
-    await t.test('funciona sobre el esquema original sin tablas ni trigger biomÃ©tricos nuevos', async () => {
+    await t.test('funciona sobre el esquema original sin tablas ni trigger biométricos nuevos', async () => {
       const tables = await db.$queryRaw`SELECT relname FROM pg_catalog.pg_class
         WHERE relnamespace = 'public'::regnamespace
           AND relname IN ('biometric_revision', 'biometric_enrollment_proofs', 'biometric_receipts')`;
@@ -57,7 +57,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       eventIds.push(payload.eventId);
       return { payload, eventProof: signToken(payload, env) };
     };
-    await t.test('lectura conjunta conserva decisiones, Ãºltima membresÃ­a no cancelada y campos de respuesta', async () => {
+    await t.test('lectura conjunta conserva decisiones, última membresía no cancelada y campos de respuesta', async () => {
       const candidate = await createMember("joined'--", { status: 'inactivo', huellaTemplate: template });
       const compare = async () => {
         const original = await db.socio.findUnique({ where: { codigoSocio: candidate.codigoSocio },
@@ -89,7 +89,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.equal((await compare()).motivoCodigo, 'socio_no_disponible');
       assert.equal(await leerSocioParaAsistencia(db, `unknown-${suffix}' OR 1=1 --`), null);
     });
-    await t.test('permisos conjuntos reflejan revocaciÃ³n y desactivaciÃ³n entre solicitudes', async () => {
+    await t.test('permisos conjuntos reflejan revocación y desactivación entre solicitudes', async () => {
       await db.rol.update({ where: { id: roleId }, data: { esAdministrador: false, permisos: { asistencia: { crear: true } } } });
       try {
         await exigirPermisosActuales(request(), [['asistencia', 'crear']], db);
@@ -102,12 +102,12 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
         await db.rol.update({ where: { id: roleId }, data: { esAdministrador: true, permisos: {} } });
       }
     });
-    await t.test('dos pestaÃ±as y respuesta perdida crean exactamente un acceso y recibo', async () => {
+    await t.test('dos pestañas y respuesta perdida crean exactamente un acceso y recibo', async () => {
       const e = event();
       const results = await Promise.all(Array.from({ length: 8 }, () => service.recognize(request({ eventProof: e.eventProof }))));
       assert.equal(new Set(results.map(r => r.data.asistencia.id)).size, 1);
       assert.ok(results.every(r => r.data.decision === 'permitido'));
-      assert.ok(results.every(r => r.data.motivo_codigo === 'proximo_vencer'), 'la huella conserva el aviso de la membresÃ­a que vence maÃ±ana');
+      assert.ok(results.every(r => r.data.motivo_codigo === 'proximo_vencer'), 'la huella conserva el aviso de la membresía que vence mañana');
       const auditId = `bio-event:${e.payload.eventId}`;
       assert.equal(await db.auditoriaLog.count({ where: { id: auditId } }), 1);
       assert.equal(await db.acceso.count({ where: { socioId: member.id } }), 1);
@@ -121,7 +121,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.equal(verifyToken(results[0].receipt, 'receipt', { env }).payload.eventId, e.payload.eventId);
       await assert.rejects(service.recognize(request({ eventProof: signToken({ ...e.payload, codigoSocio: 'OTHER' }, env) })), { code: 'EVENT_CONFLICT' });
     });
-    await t.test('lectura optimizada conserva normalizaciÃ³n y revierte acceso si falla el comprobante', async () => {
+    await t.test('lectura optimizada conserva normalización y revierte acceso si falla el comprobante', async () => {
       const candidate = await createMember('normalize', { status: 'inactivo' });
       const membership = await db.membresiaSocio.create({ data: { uuidMembresiaSocio: randomUUID(), socioId: candidate.id, planId: plan.id,
         status: 'vencida', estadoPago: 'pagado', fechaInicio: new Date(+now - 86400000), fechaFin: new Date(+now + 86400000) } });
@@ -151,7 +151,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.deepEqual(await service.recognize(request({ eventProof: e.eventProof })), result);
       assert.equal(await db.acceso.count({ where: { socioId: candidate.id } }), 1);
     });
-    await t.test('denegaciÃ³n persistida/idempotente; renovaciÃ³n usa informaciÃ³n actual', async () => {
+    await t.test('denegación persistida/idempotente; renovación usa información actual', async () => {
       await db.membresiaSocio.update({ where: { id: membership.id }, data: { fechaFin: new Date(+now - 2 * 86400000) } });
       const e = event();
       const denied = await service.recognize(request({ eventProof: e.eventProof }));
@@ -161,20 +161,20 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.deepEqual(await service.recognize(request({ eventProof: e.eventProof })), denied);
       assert.equal((await service.recognize(request({ eventProof: event().eventProof }))).data.decision, 'permitido');
     });
-    await t.test('corregir manualmente el estado de una asistencia no duplica el evento ni bloquea su confirmaciÃ³n', async () => {
+    await t.test('corregir manualmente el estado de una asistencia no duplica el evento ni bloquea su confirmación', async () => {
       const e = event();
       const original = await service.recognize(request({ eventProof: e.eventProof }));
       assert.equal(original.data.decision, 'permitido');
       const total = await db.acceso.count({ where: { socioId: member.id } });
       await db.acceso.update({ where: { id: original.data.asistencia.id }, data: { estadoAcceso: 'denegado' } });
       const replay = await service.recognize(request({ eventProof: e.eventProof }));
-      assert.deepEqual(replay, original, 'la confirmaciÃ³n conserva el resultado que ya fue procesado');
+      assert.deepEqual(replay, original, 'la confirmación conserva el resultado que ya fue procesado');
       assert.equal(verifyToken(replay.receipt, 'receipt', { env }).payload.eventId, e.payload.eventId);
       assert.equal(await db.acceso.count({ where: { socioId: member.id } }), total);
       const edited = await db.acceso.findUniqueOrThrow({ where: { id: original.data.asistencia.id } });
-      assert.equal(edited.estadoAcceso, 'denegado', 'el reintento no sobrescribe la correcciÃ³n manual');
+      assert.equal(edited.estadoAcceso, 'denegado', 'el reintento no sobrescribe la corrección manual');
     });
-    await t.test('bloqueos, bajas y desconocidos guardan denegaciÃ³n; captura antigua es recuperada', async () => {
+    await t.test('bloqueos, bajas y desconocidos guardan denegación; captura antigua es recuperada', async () => {
       await db.socio.update({ where: { id: member.id }, data: { status: 'bloqueado' } });
       assert.equal((await service.recognize(request({ eventProof: event().eventProof }))).data.motivo_codigo, 'socio_bloqueado');
       await db.socio.update({ where: { id: member.id }, data: { status: 'activo', isDeleted: true } });
@@ -195,7 +195,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.equal(await db.acceso.count({ where: { socioId: member.id } }), count);
       assert.equal(await db.auditoriaLog.count({ where: { id: `bio-event:${e.payload.eventId}` } }), 1);
     });
-    await t.test('snapshot autenticado incluye bloqueados para unicidad y conserva revisiÃ³n coherente', async () => {
+    await t.test('snapshot autenticado incluye bloqueados para unicidad y conserva revisión coherente', async () => {
       await db.socio.update({ where: { id: member.id }, data: { status: 'bloqueado' } });
       const snapshot = await service.snapshot({ ...request(), query: { kioskId: 'TEST-KIOSK' } });
       const signed = verifyToken(snapshot.snapshot, 'cache', { env, maxBytes: 1000000 }).payload;
@@ -208,7 +208,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.ok(Date.parse(signed.issuedAtUtc) >= Date.now() - 10000);
       assert.equal(Date.parse(signed.expiresAtUtc) - Date.parse(signed.issuedAtUtc), 300000);
     });
-    await t.test('dos enrollments sobre revisiÃ³n R: solo uno escribe; proof y escritura hacen rollback juntos', async () => {
+    await t.test('dos enrollments sobre revisión R: solo uno escribe; proof y escritura hacen rollback juntos', async () => {
       const a = await createMember('enrollA'), b = await createMember('enrollB');
       const revision = await currentRevision();
       const fingerprint = targetCode => {
@@ -226,7 +226,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
       assert.equal(await db.socio.count({ where: { id: { in: [a.id, b.id] }, huellaTemplate: { not: null } } }), 1);
       assert.equal(await db.auditoriaLog.count({ where: { id: { in: [fa, fb].map(fp => `bio-proof:${fp.proof.proofId}`) } } }), 1);
     });
-    await t.test('hash detecta reemplazo, eliminaciÃ³n, bloqueo/reactivaciÃ³n sin trigger ni cambios en campos ajenos', async () => {
+    await t.test('hash detecta reemplazo, eliminación, bloqueo/reactivación sin trigger ni cambios en campos ajenos', async () => {
       let before = await currentRevision();
       await db.socio.update({ where: { id: member.id }, data: { nombreCompleto: 'Changed display' } });
       assert.equal(await currentRevision(), before);
@@ -234,7 +234,7 @@ test('PostgreSQL aislado: transacciones, duplicados concurrentes, revisiÃ³n y 
         before = await currentRevision(); await db.socio.update({ where: { id: member.id }, data }); assert.notEqual(await currentRevision(), before);
       }
     });
-    await t.test('una prueba consumida no se reutiliza aunque el contenido biomÃ©trico permanezca igual', async () => {
+    await t.test('una prueba consumida no se reutiliza aunque el contenido biométrico permanezca igual', async () => {
       const same = await createMember('replay', { huellaTemplate: template });
       const proofId = randomUUID(); proofIds.push(proofId);
       const payload = { v: 1, purpose: 'enrollment', kioskId: 'TEST-KIOSK', proofId, revision: await currentRevision(), codigoSocio: same.codigoSocio,

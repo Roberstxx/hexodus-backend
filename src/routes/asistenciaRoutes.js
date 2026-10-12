@@ -14,14 +14,14 @@ import { verificarToken, verificarPermiso } from "../middlewares/authMiddleware.
 
 const router = Router();
 
-// Todas las rutas requieren autenticaciÃ³n
+// Todas las rutas requieren autenticación
 router.use(verificarToken);
 
-// RUTAS DEL KIOSKO BIOMÃ‰TRICO
+// RUTAS DEL KIOSKO BIOMÉTRICO
 // Aunque venga del kiosko, si usamos JWT, debe tener permiso de crear asistencias
 router.post("/validar", verificarPermiso("asistencia", "crear"), validarAsistenciaFacial);
 
-// RUTAS BIOMÃ‰TRICAS LOCALES (HUELLA)
+// RUTAS BIOMÉTRICAS LOCALES (HUELLA)
 router.post("/huellas/sesion", crearSesionBiometrica);
 router.get("/huellas/sincronizar", sincronizarHuellas);
 // Ruta para registrar la entrada cuando el lector local hace Match
@@ -31,7 +31,7 @@ router.post("/huellas/validar", validarAsistenciaHuella);
 // Ver el historial general
 router.get("/", verificarPermiso("asistencia", "ver"), obtenerHistorialAsistencias);
 
-// Ver asistencias del dÃ­a actual
+// Ver asistencias del día actual
 router.get("/hoy", verificarPermiso("asistencia", "ver"), obtenerAsistenciasHoy);
 
 // Ver asistencias de un socio en particular
@@ -40,7 +40,7 @@ router.get("/socio/:id", verificarPermiso("asistencia", "ver"), obtenerAsistenci
 // Forzar un registro manual desde la tabla (cuando la huella/cara falla)
 router.post("/manual", verificarPermiso("asistencia", "registrarManual"), registrarAsistenciaManual);
 
-// Endpoint para corregir o forzar una denegaciÃ³n manualmente
+// Endpoint para corregir o forzar una denegación manualmente
 router.patch("/:id/marcar-denegado", verificarPermiso("asistencia", "editar"), marcarAsistenciaDenegada);
 
 export default router;

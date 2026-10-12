@@ -13,7 +13,7 @@ import { prepareFingerprint, consumeEnrollmentProof } from "../services/biometri
 import { exigirPermisosActuales } from "../middlewares/biometriaMiddleware.js";
 import { biometricErrorResponse } from "../utils/biometriaContrato.js";
 
-// AYUDANTES DE VALIDACIÃ“N GLOBALES
+// AYUDANTES DE VALIDACIÓN GLOBALES
 const validarFecha = (fechaStr, nombreCampo) => {
   if (!fechaStr) return null;
 
@@ -27,25 +27,25 @@ const validarFecha = (fechaStr, nombreCampo) => {
     const soloFecha = fechaStr.split("T")[0]; // Extrae solo "2026-03-18"
     fecha = fechaStrAInicio(soloFecha); // Lo convierte a la medianoche EXACTA de Campeche
   } else {
-    fecha = new Date(fechaStr); // Si trae hora especÃ­fica (ej. registro biomÃ©trico), la respeta
+    fecha = new Date(fechaStr); // Si trae hora específica (ej. registro biométrico), la respeta
   }
 
   if (isNaN(fecha.getTime()))
     throw new Error(
-      `UX_ERROR:La fecha proporcionada para '${nombreCampo}' es invÃ¡lida.`,
+      `UX_ERROR:La fecha proporcionada para '${nombreCampo}' es inválida.`,
     );
 
   // Evitar fechas extremadamente raras por errores de tipeo
   const year = fecha.getFullYear();
   if (year < 2000 || year > 2100)
     throw new Error(
-      `UX_ERROR:La fecha para '${nombreCampo}' estÃ¡ fuera de un rango aceptable.`,
+      `UX_ERROR:La fecha para '${nombreCampo}' está fuera de un rango aceptable.`,
     );
 
   return fecha;
 };
 
-// HELPER: Forzar salida de fecha a string local sin la 'Z' (Evita el salto de dÃ­as en el Frontend)
+// HELPER: Forzar salida de fecha a string local sin la 'Z' (Evita el salto de días en el Frontend)
 const formatoLocalISO = (date) => {
   if (!date) return null;
   const p = partesEnMerida(date);
@@ -92,7 +92,7 @@ const labelVigencia = {
   vigente: "Vigente",
   por_vencer: "Por vencer",
   vencida: "Vencida",
-  sin_membresia: "Sin membresÃ­a",
+  sin_membresia: "Sin membresía",
 };
 
 const labelContrato = {
@@ -128,19 +128,19 @@ const ajustarColumnas = (worksheet) => {
 
 const agregarTablaSocios = (worksheet, socios) => {
   aplicarEstiloHeader(worksheet.addRow([
-    "CÃ³digo",
+    "Código",
     "Socio",
-    "GÃ©nero",
-    "TelÃ©fono",
+    "Género",
+    "Teléfono",
     "Correo",
     "Plan",
     "Vigencia",
     "Estado pago",
-    "Inicio membresÃ­a",
+    "Inicio membresía",
     "Vencimiento",
     "Precio congelado",
-    "Ãšltimo pago",
-    "MÃ©todo Ãºltimo pago",
+    "Último pago",
+    "Método último pago",
     "Contrato firmado",
     "Vigencia contrato",
     "Inicio contrato",
@@ -188,15 +188,15 @@ const validarMetodoPago = async (tx, metodoId) => {
     });
     if (!existe)
       throw new Error(
-        "NOT_FOUND:El mÃ©todo de pago especificado no existe en el catÃ¡logo.",
+        "NOT_FOUND:El método de pago especificado no existe en el catálogo.",
       );
     return existe.id;
   }
-  // Fallback seguro: Si el frontend no manda nada, toma el primer mÃ©todo vÃ¡lido que exista en BD
+  // Fallback seguro: Si el frontend no manda nada, toma el primer método válido que exista en BD
   const fallback = await tx.metodoPago.findFirst();
   if (!fallback)
     throw new Error(
-      "UX_ERROR:No hay mÃ©todos de pago registrados en el sistema. Debe registrar al menos uno.",
+      "UX_ERROR:No hay métodos de pago registrados en el sistema. Debe registrar al menos uno.",
     );
   return fallback.id;
 };
@@ -220,7 +220,7 @@ const recalcularStatusSocio = async (tx, socioId) => {
   });
 };
 
-// COTIZAR MEMBRESÃA
+// COTIZAR MEMBRESÍA
 export const cotizarMembresia = async (req, res) => {
   try {
     const { plan_id, fecha_inicio } = req.body;
@@ -238,13 +238,13 @@ export const cotizarMembresia = async (req, res) => {
     if (!plan) {
       return res
         .status(404)
-        .json({ error: "Plan de membresÃ­a no encontrado." });
+        .json({ error: "Plan de membresía no encontrado." });
     }
 
     // Calcular Fechas blindadas
-    const inicio = validarFecha(fecha_inicio, "Inicio de CotizaciÃ³n");
+    const inicio = validarFecha(fecha_inicio, "Inicio de Cotización");
     if (isNaN(inicio.getTime()))
-      return res.status(400).json({ error: "La fecha de inicio es invÃ¡lida." });
+      return res.status(400).json({ error: "La fecha de inicio es inválida." });
 
     const fin = calcularFechaFinMembresia(inicio, plan.duracionDias);
 
@@ -262,7 +262,7 @@ export const cotizarMembresia = async (req, res) => {
       : 0;
 
     res.status(200).json({
-      message: "CotizaciÃ³n exitosa",
+      message: "Cotización exitosa",
       data: {
         plan_id: plan.id,
         nombre_plan: plan.nombre,
@@ -279,11 +279,11 @@ export const cotizarMembresia = async (req, res) => {
     });
   } catch (error) {
     console.error("Error al cotizar:", error);
-    res.status(500).json({ error: "Error interno al calcular la cotizaciÃ³n." });
+    res.status(500).json({ error: "Error interno al calcular la cotización." });
   }
 };
 
-// CREAR SOCIO + BIOMETRÃA DUAL + CONTRATO + MEMBRESÃA
+// CREAR SOCIO + BIOMETRÍA DUAL + CONTRATO + MEMBRESÍA
 export const crearSocio = async (req, res) => {
   try {
     const { personal, biometria, detalles_contrato, membresia } = req.body;
@@ -294,12 +294,12 @@ export const crearSocio = async (req, res) => {
     if (!personal || !personal.nombre_completo || !personal.genero) {
       return res
         .status(400)
-        .json({ error: "El Nombre Completo y GÃ©nero son obligatorios." });
+        .json({ error: "El Nombre Completo y Género son obligatorios." });
     }
 
     const resultadoTransaccion = await prisma.$transaction(async (tx) => {
       await consumeEnrollmentProof(tx, fingerprint);
-      // CREAR SOCIO Y BIOMETRÃA
+      // CREAR SOCIO Y BIOMETRÍA
       const nuevoSocio = await tx.socio.create({
         data: {
           uuidSocio: crypto.randomUUID(),
@@ -314,7 +314,7 @@ export const crearSocio = async (req, res) => {
           faceEncodingUpdatedAt: biometria?.face_encoding_updated_at
             ? validarFecha(
                 biometria.face_encoding_updated_at,
-                "ActualizaciÃ³n Facial",
+                "Actualización Facial",
               )
             : null,
           huellaTemplate: fingerprint.changed ? fingerprint.template : null,
@@ -334,7 +334,7 @@ export const crearSocio = async (req, res) => {
         );
         if (!fInicioContrato || !fFinContrato)
           throw new Error(
-            "UX_ERROR:Las fechas de contrato son requeridas si el contrato estÃ¡ firmado.",
+            "UX_ERROR:Las fechas de contrato son requeridas si el contrato está firmado.",
           );
 
         await tx.socioContrato.create({
@@ -349,27 +349,27 @@ export const crearSocio = async (req, res) => {
         });
       }
 
-      // ASIGNAR MEMBRESÃA
+      // ASIGNAR MEMBRESÍA
       if (membresia && membresia.plan_id) {
         const plan = await tx.membresiaPlan.findUnique({
           where: { id: parseInt(membresia.plan_id) },
         });
         if (!plan)
           throw new Error(
-            "NOT_FOUND:El plan de membresÃ­a seleccionado no existe.",
+            "NOT_FOUND:El plan de membresía seleccionado no existe.",
           );
 
         const fechaInicio = validarFecha(
           membresia.fecha_inicio,
-          "Inicio de MembresÃ­a",
+          "Inicio de Membresía",
         );
         if (!fechaInicio)
           throw new Error(
-            "UX_ERROR:La fecha de inicio de membresÃ­a es requerida.",
+            "UX_ERROR:La fecha de inicio de membresía es requerida.",
           );
 
         const fechaFin = membresia.fecha_vencimiento
-          ? validarFecha(membresia.fecha_vencimiento, "Fin de MembresÃ­a")
+          ? validarFecha(membresia.fecha_vencimiento, "Fin de Membresía")
           : calcularFechaFinMembresia(fechaInicio, plan.duracionDias);
 
         const hoy = new Date();
@@ -408,7 +408,7 @@ export const crearSocio = async (req, res) => {
         });
 
         if (estadoPagoUI === "pagado") {
-          // LÃ“GICA DE PAGOS DIVIDIDOS (Retrocompatible)
+          // LÓGICA DE PAGOS DIVIDIDOS (Retrocompatible)
           const listaPagos =
             membresia.pagos && membresia.pagos.length > 0
               ? membresia.pagos
@@ -423,7 +423,7 @@ export const crearSocio = async (req, res) => {
 
           if (listaPagos.length === 0) {
             throw new Error(
-              "UX_ERROR:Debes proporcionar al menos un mÃ©todo de pago.",
+              "UX_ERROR:Debes proporcionar al menos un método de pago.",
             );
           }
 
@@ -433,16 +433,16 @@ export const crearSocio = async (req, res) => {
           );
           if (Math.abs(totalPagado - parseFloat(precioFinal)) > 0.01) {
             throw new Error(
-              `UX_ERROR:El total de los pagos ($${totalPagado}) no coincide con el precio de la membresÃ­a ($${precioFinal}).`,
+              `UX_ERROR:El total de los pagos ($${totalPagado}) no coincide con el precio de la membresía ($${precioFinal}).`,
             );
           }
 
           let conceptoMembresia = await tx.concepto.findFirst({
-            where: { nombre: "InscripciÃ³n / MembresÃ­a" },
+            where: { nombre: "Inscripción / Membresía" },
           });
           if (!conceptoMembresia) {
             conceptoMembresia = await tx.concepto.create({
-              data: { nombre: "InscripciÃ³n / MembresÃ­a", tipo: "ingreso" },
+              data: { nombre: "Inscripción / Membresía", tipo: "ingreso" },
             });
           }
 
@@ -472,7 +472,7 @@ export const crearSocio = async (req, res) => {
                 monto: montoPago,
                 referenciaTipo: "membresia",
                 referenciaId: membresiaAsignada.id,
-                nota: `[Pago: ID ${metodoPagoIdValido}] SuscripciÃ³n inicial dividida de socio ${nuevoSocio.nombreCompleto} (${nuevoSocio.codigoSocio})`,
+                nota: `[Pago: ID ${metodoPagoIdValido}] Suscripción inicial dividida de socio ${nuevoSocio.nombreCompleto} (${nuevoSocio.codigoSocio})`,
               },
             });
           }
@@ -494,7 +494,7 @@ export const crearSocio = async (req, res) => {
     if (cambioHuella && biometricErrorResponse(res, error)) return;
     console.error("Error al crear socio:", cambioHuella ? { name: error?.name, code: error?.code } : error);
 
-    // Manejo de Errores UX mejorado (Evita los 500 genÃ©ricos)
+    // Manejo de Errores UX mejorado (Evita los 500 genéricos)
     if (error.message.startsWith("UX_ERROR:"))
       return res
         .status(400)
@@ -508,7 +508,7 @@ export const crearSocio = async (req, res) => {
         .status(403)
         .json({
           error:
-            "OperaciÃ³n denegada: No puedes registrar un pago porque la caja estÃ¡ cerrada.",
+            "Operación denegada: No puedes registrar un pago porque la caja está cerrada.",
         });
 
     res
@@ -627,7 +627,7 @@ export const listarSocios = async (req, res) => {
       vencidos: { valor: vencidos, etiqueta: "Requieren seguimiento" },
       vencen_en_7_dias: {
         valor: vencenEn7Dias,
-        etiqueta: "RenovaciÃ³n pendiente",
+        etiqueta: "Renovación pendiente",
       },
     };
 
@@ -643,7 +643,7 @@ export const listarSocios = async (req, res) => {
         contacto: { telefono: socio.telefono, correo: socio.correo },
         membresia: membresiaActual
           ? membresiaActual.plan.nombre
-          : "Sin membresÃ­a",
+          : "Sin membresía",
         plan_id: membresiaActual ? membresiaActual.planId : null,
         precio_membresia: membresiaActual ? membresiaActual.precioCongelado : null,
         precio_congelado: membresiaActual ? membresiaActual.precioCongelado : null,
@@ -686,7 +686,7 @@ export const listarSocios = async (req, res) => {
   }
 };
 
-// EXPORTAR SOCIOS Y ESTADO DE MEMBRESÃAS
+// EXPORTAR SOCIOS Y ESTADO DE MEMBRESÍAS
 export const exportarSocios = async (req, res) => {
   try {
     const {
@@ -747,7 +747,7 @@ export const exportarSocios = async (req, res) => {
         genero: socio.genero || "N/A",
         telefono: socio.telefono || "",
         correo: socio.correo || "",
-        plan: membresiaActual?.plan?.nombre || "Sin membresÃ­a",
+        plan: membresiaActual?.plan?.nombre || "Sin membresía",
         planKey: normalizarTexto(membresiaActual?.plan?.nombre || ""),
         vigenciaEstado,
         vigenciaLabel: labelVigencia[vigenciaEstado] || vigenciaEstado,
@@ -757,7 +757,7 @@ export const exportarSocios = async (req, res) => {
         precioCongelado: membresiaActual?.precioCongelado ? Number(membresiaActual.precioCongelado) : 0,
         ultimoPagoMonto: ultimoPago ? Number(ultimoPago.monto) : 0,
         ultimoPagoMetodo: ultimoPago?.metodoPago?.nombre || "",
-        contratoFirmado: contratoActual ? "SÃ­" : "No",
+        contratoFirmado: contratoActual ? "Sí" : "No",
         contratoEstado,
         contratoLabel: labelContrato[contratoEstado] || contratoEstado,
         fechaInicioContrato: contratoActual ? formatoLocalFecha(contratoActual.fechaInicio) : "",
@@ -783,7 +783,7 @@ export const exportarSocios = async (req, res) => {
       if (membresiaKey && membresiaKey !== "todos" && socio.planKey !== membresiaKey) return false;
       if (generoFiltro !== "todos" && socio.genero !== generoFiltro) return false;
 
-      if (contrato_firma === "firmado" && socio.contratoFirmado !== "SÃ­") return false;
+      if (contrato_firma === "firmado" && socio.contratoFirmado !== "Sí") return false;
       if (contrato_firma === "pendiente" && socio.contratoFirmado !== "No") return false;
 
       if (contrato_vigencia !== "todos" && socio.contratoEstado !== contrato_vigencia) return false;
@@ -832,9 +832,9 @@ export const exportarSocios = async (req, res) => {
     workbook.created = new Date();
 
     const resumenSheet = workbook.addWorksheet("Resumen");
-    resumenSheet.addRow(["Reporte", "Socios y membresÃ­as"]);
+    resumenSheet.addRow(["Reporte", "Socios y membresías"]);
     resumenSheet.addRow(["Generado", formatoLocalISO(new Date())]);
-    resumenSheet.addRow(["Filtros", `Vigencia: ${vigencia} | MembresÃ­a: ${membresia} | GÃ©nero: ${genero}`]);
+    resumenSheet.addRow(["Filtros", `Vigencia: ${vigencia} | Membresía: ${membresia} | Género: ${genero}`]);
     resumenSheet.addRow([]);
     aplicarEstiloHeader(resumenSheet.addRow(["Indicador", "Valor"]));
     [
@@ -842,7 +842,7 @@ export const exportarSocios = async (req, res) => {
       ["Vigentes", resumen.vigente],
       ["Por vencer", resumen.por_vencer],
       ["Vencidos", resumen.vencida],
-      ["Sin membresÃ­a", resumen.sin_membresia],
+      ["Sin membresía", resumen.sin_membresia],
       ["Adeudo potencial sin pagar", resumen.totalAdeudoPotencial],
     ].forEach(([label, value]) => {
       const row = resumenSheet.addRow([label, value]);
@@ -859,14 +859,14 @@ export const exportarSocios = async (req, res) => {
       sociosFiltrados.filter((socio) => ["vencida", "sin_membresia"].includes(socio.vigenciaEstado)),
     );
 
-    const planesSheet = workbook.addWorksheet("MembresÃ­as por plan");
+    const planesSheet = workbook.addWorksheet("Membresías por plan");
     aplicarEstiloHeader(planesSheet.addRow([
       "Plan",
       "Total socios",
       "Vigentes",
       "Por vencer",
       "Vencidos",
-      "Sin membresÃ­a",
+      "Sin membresía",
       "Sin pagar",
     ]));
     Array.from(resumenPorPlan.values())
@@ -899,13 +899,13 @@ export const exportarSocios = async (req, res) => {
   }
 };
 
-// OBTENER UN SOCIO EN ESPECÃFICO
+// OBTENER UN SOCIO EN ESPECÍFICO
 export const obtenerSocio = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (isNaN(id)) {
-      return res.status(400).json({ error: "ID de socio invÃ¡lido." });
+      return res.status(400).json({ error: "ID de socio inválido." });
     }
 
     const socio = await prisma.socio.findUnique({
@@ -937,10 +937,10 @@ export const obtenerSocio = async (req, res) => {
       correo: socio.correo || "Sin correo registrado",
       foto_perfil_url: socio.fotoUrl,
       genero: socio.genero || "N/A",
-      telefono: socio.telefono || "Sin telÃ©fono",
+      telefono: socio.telefono || "Sin teléfono",
       membresia: membresiaActual
         ? membresiaActual.plan.nombre
-        : "Sin membresÃ­a",
+        : "Sin membresía",
       plan_id: membresiaActual ? membresiaActual.planId : null,
       precio_membresia: membresiaActual ? membresiaActual.precioCongelado : null,
       precio_congelado: membresiaActual ? membresiaActual.precioCongelado : null,
@@ -988,7 +988,7 @@ export const actualizarSocio = async (req, res) => {
     const { personal, biometria, detalles_contrato, membresia } = req.body;
 
     if (isNaN(id))
-      return res.status(400).json({ error: "ID de socio invÃ¡lido." });
+      return res.status(400).json({ error: "ID de socio inválido." });
     const socioId = parseInt(id);
 
     const socioExistente = await prisma.socio.findUnique({
@@ -1003,7 +1003,7 @@ export const actualizarSocio = async (req, res) => {
     await prisma.$transaction(
       async (tx) => {
         await consumeEnrollmentProof(tx, fingerprint);
-        // ACTUALIZAR DATOS PERSONALES Y BIOMETRÃA
+        // ACTUALIZAR DATOS PERSONALES Y BIOMETRÍA
         let dataSocio = {};
         if (personal) {
           if (personal.nombre_completo)
@@ -1093,7 +1093,7 @@ export const actualizarSocio = async (req, res) => {
           }
         }
 
-        // ACTUALIZAR MEMBRESÃA CON LÃ“GICA CONTABLE (REVERSOS Y COBROS)
+        // ACTUALIZAR MEMBRESÍA CON LÓGICA CONTABLE (REVERSOS Y COBROS)
         if (membresia && membresia.plan_id) {
           const nuevoPlanId = parseInt(membresia.plan_id);
           const estadoPagoUI = membresia.estado_pago || "sin_pagar";
@@ -1108,7 +1108,7 @@ export const actualizarSocio = async (req, res) => {
             orderBy: { id: "desc" },
           });
 
-          // ðŸ›¡ï¸ ESCUDO ANTI-FUGAS DE DINERO (BLINDADO POR FECHA) ðŸ›¡ï¸
+          // 🛡️ ESCUDO ANTI-FUGAS DE DINERO (BLINDADO POR FECHA) 🛡️
           if (membresiaActual) {
             const hoy = inicioDiaMembresia();
             const estaVencidaPorFecha =
@@ -1120,7 +1120,7 @@ export const actualizarSocio = async (req, res) => {
               estaVencidaPorFecha
             ) {
               throw new Error(
-                "UX_ERROR:OperaciÃ³n denegada. No puedes editar ni generar devoluciones sobre una membresÃ­a que ya expirÃ³. Por favor, utiliza el botÃ³n de 'Renovar'.",
+                "UX_ERROR:Operación denegada. No puedes editar ni generar devoluciones sobre una membresía que ya expiró. Por favor, utiliza el botón de 'Renovar'.",
               );
             }
           }
@@ -1130,7 +1130,7 @@ export const actualizarSocio = async (req, res) => {
           });
           if (!planNuevo)
             throw new Error(
-              "NOT_FOUND:El plan de membresÃ­a seleccionado no existe.",
+              "NOT_FOUND:El plan de membresía seleccionado no existe.",
             );
 
           const hoy = new Date();
@@ -1142,21 +1142,21 @@ export const actualizarSocio = async (req, res) => {
             ? parseFloat(planNuevo.precioOferta)
             : parseFloat(planNuevo.precioBase);
 
-          // --- AUTO-CÃLCULO DE FECHAS ---
+          // --- AUTO-CÁLCULO DE FECHAS ---
           const fechaInicioReal = validarFecha(
             membresia.fecha_inicio,
-            "Inicio de MembresÃ­a",
+            "Inicio de Membresía",
           );
           if (!fechaInicioReal)
             throw new Error(
-              "UX_ERROR:La fecha de inicio de membresÃ­a es requerida.",
+              "UX_ERROR:La fecha de inicio de membresía es requerida.",
             );
 
           let fechaFinReal;
           if (membresia.fecha_vencimiento) {
             fechaFinReal = validarFecha(
               membresia.fecha_vencimiento,
-              "Fin de MembresÃ­a",
+              "Fin de Membresía",
             );
           } else {
             fechaFinReal = calcularFechaFinMembresia(
@@ -1177,7 +1177,7 @@ export const actualizarSocio = async (req, res) => {
           };
 
           const registrarCobro = async (membresiaId, monto, nota) => {
-            if (monto <= 0) return; // ðŸ”¥ ESCUDO: No registrar cobros de $0
+            if (monto <= 0) return; // 🔥 ESCUDO: No registrar cobros de $0
             if (!cajaAbierta) throw new Error("CAJA_CERRADA");
 
             await tx.pagoMembresia.create({
@@ -1190,11 +1190,11 @@ export const actualizarSocio = async (req, res) => {
             });
 
             let conceptoMembresia = await tx.concepto.findFirst({
-              where: { nombre: "InscripciÃ³n / MembresÃ­a" },
+              where: { nombre: "Inscripción / Membresía" },
             });
             if (!conceptoMembresia)
               conceptoMembresia = await tx.concepto.create({
-                data: { nombre: "InscripciÃ³n / MembresÃ­a", tipo: "ingreso" },
+                data: { nombre: "Inscripción / Membresía", tipo: "ingreso" },
               });
 
             await tx.cajaMovimiento.create({
@@ -1215,7 +1215,7 @@ export const actualizarSocio = async (req, res) => {
             if (monto <= 0) return; // No registrar reversos de $0
             if (!cajaAbierta) throw new Error("CAJA_CERRADA");
 
-            // TRAZABILIDAD: Crear el espejo negativo en los pagos de la membresÃ­a
+            // TRAZABILIDAD: Crear el espejo negativo en los pagos de la membresía
             await tx.pagoMembresia.create({
               data: {
                 membresiaSocioId: membresiaId,
@@ -1225,13 +1225,13 @@ export const actualizarSocio = async (req, res) => {
               },
             });
 
-            // CAJA: Registrar la salida fÃ­sica del dinero
+            // CAJA: Registrar la salida física del dinero
             let conceptoDevolucion = await tx.concepto.findFirst({
-              where: { nombre: "DevoluciÃ³n de MembresÃ­a" },
+              where: { nombre: "Devolución de Membresía" },
             });
             if (!conceptoDevolucion)
               conceptoDevolucion = await tx.concepto.create({
-                data: { nombre: "DevoluciÃ³n de MembresÃ­a", tipo: "gasto" },
+                data: { nombre: "Devolución de Membresía", tipo: "gasto" },
               });
 
             await tx.cajaMovimiento.create({
@@ -1286,7 +1286,7 @@ export const actualizarSocio = async (req, res) => {
                 },
               });
 
-              // 4. Cobramos la nueva (si el UI la mandÃ³ como pagada)
+              // 4. Cobramos la nueva (si el UI la mandó como pagada)
               if (estadoPagoUI === "pagado") {
                 await registrarCobro(
                   nuevaMembresia.id,
@@ -1310,12 +1310,12 @@ export const actualizarSocio = async (req, res) => {
               const montoOperacion =
                 precioAnterior > 0 ? precioAnterior : precioFinal;
 
-              // Si debÃ­a el plan y ahora lo pagan
+              // Si debía el plan y ahora lo pagan
               if (estadoAnterior === "sin_pagar" && estadoPagoUI === "pagado") {
                 await registrarCobro(
                   membresiaActual.id,
                   montoOperacion,
-                  `Pago atrasado de membresÃ­a. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
+                  `Pago atrasado de membresía. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
                 );
               }
               // Si estaba pagado y se equivocaron (lo regresan a sin pagar)
@@ -1326,12 +1326,12 @@ export const actualizarSocio = async (req, res) => {
                 await registrarReverso(
                   membresiaActual.id,
                   montoOperacion,
-                  `CorrecciÃ³n: MembresÃ­a a 'Sin Pagar'. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
+                  `Corrección: Membresía a 'Sin Pagar'. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
                 );
               }
             }
           } else {
-            // CASO C: NO TENÃA MEMBRESÃA
+            // CASO C: NO TENÍA MEMBRESÍA
             const nuevaMembresia = await tx.membresiaSocio.create({
               data: {
                 uuidMembresiaSocio: crypto.randomUUID(),
@@ -1350,7 +1350,7 @@ export const actualizarSocio = async (req, res) => {
               await registrarCobro(
                 nuevaMembresia.id,
                 precioFinal,
-                `SuscripciÃ³n de membresÃ­a asignada. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
+                `Suscripción de membresía asignada. Socio: ${socioExistente.nombreCompleto} (${socioExistente.codigoSocio})`,
               );
             }
           }
@@ -1372,7 +1372,7 @@ export const actualizarSocio = async (req, res) => {
     if (cambioHuella && biometricErrorResponse(res, error)) return;
     console.error("Error al actualizar socio:", cambioHuella ? { name: error?.name, code: error?.code } : error);
 
-    // Manejo de Errores UX mejorado (Evita los 500 genÃ©ricos)
+    // Manejo de Errores UX mejorado (Evita los 500 genéricos)
     if (error.message.startsWith("UX_ERROR:"))
       return res
         .status(400)
@@ -1386,14 +1386,14 @@ export const actualizarSocio = async (req, res) => {
         .status(403)
         .json({
           error:
-            "OperaciÃ³n denegada: La actualizaciÃ³n requiere registrar un pago o devoluciÃ³n, pero la caja estÃ¡ cerrada.",
+            "Operación denegada: La actualización requiere registrar un pago o devolución, pero la caja está cerrada.",
         });
     if (error.message === "REGLA_CONTRATO_VIGENTE")
       return res
         .status(400)
         .json({
           error:
-            "No se puede desactivar el contrato porque aÃºn se encuentra vigente.",
+            "No se puede desactivar el contrato porque aún se encuentra vigente.",
         });
 
     res
@@ -1402,13 +1402,13 @@ export const actualizarSocio = async (req, res) => {
   }
 };
 
-// ELIMINAR SOCIO (Borrado LÃ³gico)
+// ELIMINAR SOCIO (Borrado Lógico)
 export const eliminarSocio = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (isNaN(id))
-      return res.status(400).json({ error: "ID de socio invÃ¡lido." });
+      return res.status(400).json({ error: "ID de socio inválido." });
 
     const socioId = parseInt(id);
 
@@ -1466,12 +1466,12 @@ export const eliminarSocio = async (req, res) => {
   }
 };
 
-// 6. HISTORIAL DE MEMBRESÃAS Y PAGOS
+// 6. HISTORIAL DE MEMBRESÍAS Y PAGOS
 export const obtenerHistorialMembresias = async (req, res) => {
   try {
     const socioId = parseInt(req.params.id);
     if (isNaN(socioId))
-      return res.status(400).json({ error: "ID de socio invÃ¡lido." });
+      return res.status(400).json({ error: "ID de socio inválido." });
 
     const socio = await prisma.socio.findUnique({
       where: { id: socioId },
@@ -1523,11 +1523,11 @@ export const obtenerHistorialMembresias = async (req, res) => {
   }
 };
 
-// 7. PAGAR MEMBRESÃA PENDIENTE (Atrasada)
+// 7. PAGAR MEMBRESÍA PENDIENTE (Atrasada)
 export const pagarMembresiaPendiente = async (req, res) => {
   try {
     const socioId = parseInt(req.params.id);
-    const { membresia_socio_id, metodo_pago_id, pagos } = req.body; // <-- AÃ±adimos 'pagos'
+    const { membresia_socio_id, metodo_pago_id, pagos } = req.body; // <-- Añadimos 'pagos'
 
     if (isNaN(socioId)) {
       return res.status(400).json({ error: "Faltan datos obligatorios." });
@@ -1542,33 +1542,33 @@ export const pagarMembresiaPendiente = async (req, res) => {
 
       let membresia;
 
-      // CASO A: El Front manda el ID especÃ­fico a pagar
+      // CASO A: El Front manda el ID específico a pagar
       if (membresia_socio_id) {
         membresia = await tx.membresiaSocio.findUnique({
           where: { id: parseInt(membresia_socio_id) },
           include: { socio: true },
         });
-        if (!membresia) throw new Error("NOT_FOUND:La membresÃ­a no existe.");
+        if (!membresia) throw new Error("NOT_FOUND:La membresía no existe.");
         if (membresia.socioId !== socioId)
           throw new Error(
-            "UX_ERROR:La membresÃ­a no pertenece a este socio. Verifica no estar enviando el plan_id.",
+            "UX_ERROR:La membresía no pertenece a este socio. Verifica no estar enviando el plan_id.",
           );
       }
-      // CASO B: El Front no manda ID, buscamos la deuda automÃ¡ticamente
+      // CASO B: El Front no manda ID, buscamos la deuda automáticamente
       else {
         membresia = await tx.membresiaSocio.findFirst({
           where: { socioId: socioId, estadoPago: "sin_pagar" },
-          orderBy: { fechaInicio: "desc" }, // Tomamos la mÃ¡s reciente
+          orderBy: { fechaInicio: "desc" }, // Tomamos la más reciente
           include: { socio: true },
         });
         if (!membresia)
           throw new Error(
-            "UX_ERROR:Este socio no tiene membresÃ­as pendientes de pago.",
+            "UX_ERROR:Este socio no tiene membresías pendientes de pago.",
           );
       }
 
       if (membresia.estadoPago === "pagado")
-        throw new Error("UX_ERROR:Esta membresÃ­a ya se encuentra pagada.");
+        throw new Error("UX_ERROR:Esta membresía ya se encuentra pagada.");
 
       datosMembresia = {
         nombreSocio: membresia.socio?.nombreCompleto ?? "Socio",
@@ -1576,13 +1576,13 @@ export const pagarMembresiaPendiente = async (req, res) => {
         precio: membresia.precioCongelado,
       };
 
-      // LÃ“GICA DE PAGOS DIVIDIDOS (Deuda Pendiente)
+      // LÓGICA DE PAGOS DIVIDIDOS (Deuda Pendiente)
       const listaPagos = pagos && pagos.length > 0
           ? pagos
           : (metodo_pago_id ? [{ metodo_pago_id, monto: membresia.precioCongelado }] : []);
 
       if (listaPagos.length === 0) {
-          throw new Error("UX_ERROR:Debes proporcionar al menos un mÃ©todo de pago.");
+          throw new Error("UX_ERROR:Debes proporcionar al menos un método de pago.");
       }
 
       const totalPagado = listaPagos.reduce((acc, p) => acc + parseFloat(p.monto), 0);
@@ -1591,11 +1591,11 @@ export const pagarMembresiaPendiente = async (req, res) => {
       }
 
       let concepto = await tx.concepto.findFirst({
-        where: { nombre: "InscripciÃ³n / MembresÃ­a" },
+        where: { nombre: "Inscripción / Membresía" },
       });
       if (!concepto)
         concepto = await tx.concepto.create({
-          data: { nombre: "InscripciÃ³n / MembresÃ­a", tipo: "ingreso" },
+          data: { nombre: "Inscripción / Membresía", tipo: "ingreso" },
         });
 
       // REGISTRAR CADA PAGO INDIVIDUALMENTE EN CAJA Y PAGOMEMBRESIA
@@ -1643,12 +1643,12 @@ export const pagarMembresiaPendiente = async (req, res) => {
       accion: "pagar",
       modulo: "socios",
       registroId: socioId,
-      detalles: `Pago de membresÃ­a pendiente registrado para "${datosMembresia.nombreSocio}" (#${datosMembresia.codigoSocio}) â€” Monto: $${datosMembresia.precio}`,
+      detalles: `Pago de membresía pendiente registrado para "${datosMembresia.nombreSocio}" (#${datosMembresia.codigoSocio}) — Monto: $${datosMembresia.precio}`,
     });
 
     res.status(200).json({ message: "Pago registrado correctamente en caja." });
   } catch (error) {
-    console.error("Error al pagar membresÃ­a:", error);
+    console.error("Error al pagar membresía:", error);
     if (error.message.startsWith("UX_ERROR:"))
       return res
         .status(400)
@@ -1661,13 +1661,13 @@ export const pagarMembresiaPendiente = async (req, res) => {
       return res
         .status(403)
         .json({
-          error: "No puedes registrar el pago porque la caja estÃ¡ cerrada.",
+          error: "No puedes registrar el pago porque la caja está cerrada.",
         });
     res.status(500).json({ error: "Error interno al procesar el pago." });
   }
 };
 
-// 8. RENOVAR MEMBRESÃA (Crear nuevo ciclo)
+// 8. RENOVAR MEMBRESÍA (Crear nuevo ciclo)
 export const renovarMembresia = async (req, res) => {
   try {
     const socioId = parseInt(req.params.id);
@@ -1704,7 +1704,7 @@ export const renovarMembresia = async (req, res) => {
 
       let fechaInicioReal;
       if (fecha_inicio) {
-        fechaInicioReal = validarFecha(fecha_inicio, "Inicio de RenovaciÃ³n");
+        fechaInicioReal = validarFecha(fecha_inicio, "Inicio de Renovación");
       } else {
         const { year, month, day } = ahoraEnMerida();
         
@@ -1733,7 +1733,7 @@ export const renovarMembresia = async (req, res) => {
         new Date(plan.fechaFinOferta) >= hoy;
       const precioFinal = esOfertaActiva ? plan.precioOferta : plan.precioBase;
 
-      // VALIDACIÃ“N DE PAGOS DIVIDIDOS (MembresÃ­as)
+      // VALIDACIÓN DE PAGOS DIVIDIDOS (Membresías)
       const listaPagos =
         req.body.pagos && req.body.pagos.length > 0
           ? req.body.pagos
@@ -1743,7 +1743,7 @@ export const renovarMembresia = async (req, res) => {
 
       if (listaPagos.length === 0) {
         throw new Error(
-          "UX_ERROR:Debes proporcionar al menos un mÃ©todo de pago.",
+          "UX_ERROR:Debes proporcionar al menos un método de pago.",
         );
       }
 
@@ -1772,11 +1772,11 @@ export const renovarMembresia = async (req, res) => {
       });
 
       let concepto = await tx.concepto.findFirst({
-        where: { nombre: "RenovaciÃ³n de MembresÃ­a" },
+        where: { nombre: "Renovación de Membresía" },
       });
       if (!concepto)
         concepto = await tx.concepto.create({
-          data: { nombre: "RenovaciÃ³n de MembresÃ­a", tipo: "ingreso" },
+          data: { nombre: "Renovación de Membresía", tipo: "ingreso" },
         });
 
       // REGISTRAR CADA PAGO INDIVIDUALMENTE EN CAJA Y PAGOMEMBRESIA
@@ -1805,7 +1805,7 @@ export const renovarMembresia = async (req, res) => {
             monto: montoPago,
             referenciaTipo: "membresia",
             referenciaId: nuevaMembresia.id,
-            nota: `[Pago: ID ${metodoPagoIdValido}] RenovaciÃ³n dividida socio ${socio.nombreCompleto} (${socio.codigoSocio})`,
+            nota: `[Pago: ID ${metodoPagoIdValido}] Renovación dividida socio ${socio.nombreCompleto} (${socio.codigoSocio})`,
           },
         });
       }
@@ -1825,12 +1825,12 @@ export const renovarMembresia = async (req, res) => {
       accion: "renovar",
       modulo: "socios",
       registroId: socioId,
-      detalles: `MembresÃ­a de "${datosRenovacion.nombreSocio}" (#${datosRenovacion.codigoSocio}) renovada al plan "${datosRenovacion.nombrePlan}" por $${datosRenovacion.precio}`,
+      detalles: `Membresía de "${datosRenovacion.nombreSocio}" (#${datosRenovacion.codigoSocio}) renovada al plan "${datosRenovacion.nombrePlan}" por $${datosRenovacion.precio}`,
     });
 
     res
       .status(201)
-      .json({ message: "MembresÃ­a renovada y cobrada exitosamente." });
+      .json({ message: "Membresía renovada y cobrada exitosamente." });
   } catch (error) {
     console.error("Error al renovar:", error);
     if (error.message.startsWith("UX_ERROR:"))
@@ -1844,8 +1844,8 @@ export const renovarMembresia = async (req, res) => {
     if (error.message === "CAJA_CERRADA")
       return res
         .status(403)
-        .json({ error: "No puedes renovar porque la caja estÃ¡ cerrada." });
-    res.status(500).json({ error: "Error interno al procesar la renovaciÃ³n." });
+        .json({ error: "No puedes renovar porque la caja está cerrada." });
+    res.status(500).json({ error: "Error interno al procesar la renovación." });
   }
 };
 
